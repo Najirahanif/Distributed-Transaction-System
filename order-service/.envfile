@@ -1,0 +1,11 @@
+# PORT=3001
+
+# # Use localhost (for Node.js running on Mac)
+# MONGO_URI=mongodb://mongodb:27017/order-db?replicaSet=rs0
+
+# # If you want to test without replica set
+# # MONGO_URI=mongodb://localhost:27017/order-db
+
+# KAFKA_BROKER=localhost:9092
+# CLIENT_ID=order-service
+# KAFKAJS_NO_PARTITIONER_WARNING=1
