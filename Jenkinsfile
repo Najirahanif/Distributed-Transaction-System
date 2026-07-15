@@ -14,5 +14,12 @@ pipeline {
                 sh 'ls -la'
             }
         }
+        stage('Install Dependencies') {
+            steps {
+                dir('order-service') {
+                    sh 'npm install'
+                }
+            }
+        }
     }
 }
