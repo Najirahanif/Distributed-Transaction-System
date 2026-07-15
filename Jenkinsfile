@@ -14,6 +14,13 @@ pipeline {
                 sh 'ls -la'
             }
         }
+        stage('Environment') {
+            steps {
+                sh 'echo $PATH'
+                sh 'which node || true'
+                sh 'which npm || true'
+            }
+        }
         stage('Install Dependencies') {
             steps {
                 dir('order-service') {
