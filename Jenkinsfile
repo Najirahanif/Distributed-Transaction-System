@@ -30,16 +30,9 @@ pipeline {
 
         stage('Verify Node Environment') {
             steps {
-                sh 'echo "Node Version:"'
                 sh 'node -v'
-
-                sh 'echo "NPM Version:"'
                 sh 'npm -v'
-
-                sh 'echo "Node Location:"'
                 sh 'which node'
-
-                sh 'echo "NPM Location:"'
                 sh 'which npm'
             }
         }
@@ -80,6 +73,51 @@ MONGO_URI=${MONGO_URI}
                     sh 'node --check src/server.js'
                 }
             }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('order-service') {
+                    sh 'docker build -t order-service:1.0 .'
+                }
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                sh '''
+                docker rm -f order-service-container || true
+                docker run -d \
+                    --name order-service-container \
+                    -p 3001:3001 \
+                    order-service:1.0
+                '''
+            }
+        }
+
+        stage('Verify Container') {
+            steps {
+                sh 'docker ps'
+            }
+        }
+    }
+
+    post {
+
+        always {
+            echo 'Pipeline Finished'
+        }
+
+        success {
+            echo 'Order Service Pipeline Completed Successfully'
+        }
+
+        failure {
+            echo 'Order Service Pipeline Failed'
+        }
+
+        cleanup {
+            sh 'docker rm -f order-service-container || true'
         }
     }
 }
