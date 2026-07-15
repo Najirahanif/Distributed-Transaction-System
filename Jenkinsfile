@@ -6,6 +6,10 @@ pipeline {
     }
 
     environment {
+        // Make Docker available to Jenkins
+        PATH = "/usr/local/bin:${env.PATH}"
+
+        // Order Service Environment Variables
         PORT = '3001'
         CLIENT_ID = 'order-service'
         KAFKA_BROKER = 'kafka:9092'
@@ -34,6 +38,14 @@ pipeline {
                 sh 'npm -v'
                 sh 'which node'
                 sh 'which npm'
+            }
+        }
+
+        stage('Verify Docker Environment') {
+            steps {
+                sh 'echo $PATH'
+                sh 'which docker'
+                sh 'docker --version'
             }
         }
 
@@ -86,11 +98,12 @@ MONGO_URI=${MONGO_URI}
         stage('Run Docker Container') {
             steps {
                 sh '''
-                docker rm -f order-service-container || true
-                docker run -d \
-                    --name order-service-container \
-                    -p 3001:3001 \
-                    order-service:1.0
+                    docker rm -f order-service-container || true
+
+                    docker run -d \
+                        --name order-service-container \
+                        -p 3001:3001 \
+                        order-service:1.0
                 '''
             }
         }
@@ -104,19 +117,16 @@ MONGO_URI=${MONGO_URI}
 
     post {
 
-        always {
-            echo 'Pipeline Finished'
-        }
-
         success {
-            echo 'Order Service Pipeline Completed Successfully'
+            echo 'Pipeline completed successfully.'
         }
 
         failure {
-            echo 'Order Service Pipeline Failed'
+            echo 'Pipeline failed.'
         }
 
-        cleanup {
+        always {
+            echo 'Cleaning up...'
             sh 'docker rm -f order-service-container || true'
         }
     }
