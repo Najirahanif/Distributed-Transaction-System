@@ -113,6 +113,31 @@ MONGO_URI=${MONGO_URI}
                 sh 'docker ps'
             }
         }
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Tag Docker Image') {
+            steps {
+                sh 'docker tag order-service:1.0 najira/order-service:1.0'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh 'docker push najira/order-service:1.0'
+            }
+        }
     }
 
     post {
