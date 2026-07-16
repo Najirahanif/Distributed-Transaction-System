@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: payment-service
+  namespace: ecommerce
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: payment-service
+
+  template:
+    metadata:
+      labels:
+        app: payment-service
+
+    spec:
+      containers:
+      - name: payment-service
+        image: najira/payment-service:1.0
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 3003
+
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: payment-mongo-secret
+              key: MONGO_URI
+
+        - name: PORT
+          value: "3003"
+
+        - name: CLIENT_ID
+          value: "payment-service"
+
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+
+        - name: KAFKAJS_NO_PARTITIONER_WARNING
+          value: "1"
