@@ -116,7 +116,7 @@ MONGO_URI=${MONGO_URI}
         stage('Login to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'docker-hub',
+                    credentialsId: 'docker-hub',  // token named dockmer-hub will be stored in the jenkin credentials
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
@@ -136,6 +136,63 @@ MONGO_URI=${MONGO_URI}
         stage('Push Docker Image') {
             steps {
                 sh 'docker push najira/order-service:1.0'
+            }
+        }
+        stage('Deploy Kafka') {
+            steps {
+                sh '''
+                    kubectl apply -f kubernetes/kafka-deployment.yaml
+                    kubectl apply -f kubernetes/kafka-service.yaml
+                '''
+            }
+        }
+
+        stage('Wait for Kafka') {
+            steps {
+                sh '''
+                    kubectl rollout status deployment/kafka -n ecommerce
+                '''
+            }
+        }
+
+        stage('Deploy Order Service') {
+            steps {
+                sh '''
+                    kubectl apply -f kubernetes/order-deployment.yaml
+                    kubectl apply -f kubernetes/order-service.yaml
+                '''
+            }
+        }
+
+        stage('Wait for Order Service') {
+            steps {
+                sh '''
+                    kubectl rollout status deployment/order-service -n ecommerce
+                '''
+            }
+        }
+
+        stage('Verify Kubernetes Resources') {
+            steps {
+                sh '''
+                    echo "===== Deployments ====="
+                    kubectl get deployments -n ecommerce
+
+                    echo "===== Pods ====="
+                    kubectl get pods -n ecommerce
+
+                    echo "===== Services ====="
+                    kubectl get svc -n ecommerce
+                '''
+            }
+        }
+
+        stage('Application Logs') {
+            steps {
+                sh '''
+                    POD=$(kubectl get pods -n ecommerce -l app=order-service -o jsonpath="{.items[0].metadata.name}")
+                    kubectl logs $POD -n ecommerce --tail=30
+                '''
             }
         }
     }
