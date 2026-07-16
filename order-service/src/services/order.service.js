@@ -74,6 +74,7 @@ async function createOrder(orderData) {
 
         // Wait for inventory response (with timeout)
         const inventoryResult = await waitForInventoryResponse(orderIdStr);
+        console.log('inventoryResult: ', inventoryResult);
 
         if (inventoryResult === 'FAILED') {
             console.error(`❌ Inventory reservation failed for order: ${orderIdStr}`);
