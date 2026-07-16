@@ -142,8 +142,8 @@ MONGO_URI=${MONGO_URI}
             steps {
                 dir('order-service') {
                     sh '''
-                        kubectl apply -f kubernetes/kafka-deployment.yaml
-                        kubectl apply -f kubernetes/kafka-service.yaml
+                        kubectl apply -f kafka-deployment.yaml
+                        kubectl apply -f kafka-service.yaml
                     '''
                 }
             }
@@ -161,8 +161,8 @@ MONGO_URI=${MONGO_URI}
             steps {
                 dir('order-service') {
                     sh '''
-                        kubectl apply -f kubernetes/order-deployment.yaml
-                        kubectl apply -f kubernetes/order-service.yaml
+                        kubectl apply -f order-deployment.yaml
+                        kubectl apply -f order-service.yaml
                     '''
                 }
             }
