@@ -3,6 +3,7 @@ const Order = require("../models/Order");
 const OrderAudit = require("../models/OrderAudit");
 const { publishEvent } = require("../kafka/producer");
 
+const pendingTransactions = new Map();
 // ============ CREATE ORDER ============
 async function createOrder(orderData) {
     const session = await mongoose.startSession();
