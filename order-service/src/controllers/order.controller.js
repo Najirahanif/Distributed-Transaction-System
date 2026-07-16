@@ -3,7 +3,7 @@ const orderService = require('../services/order.service');
 exports.createOrderController = async (req, res) => {
     try {
         const { productId, quantity, amount } = req.body;
-        
+
         // Validate input
         if (!productId || !quantity || !amount) {
             return res.status(400).json({
@@ -20,23 +20,54 @@ exports.createOrderController = async (req, res) => {
             amount
         });
 
+        // Return the actual order from the database
         res.status(201).json({
             success: true,
-            message: 'Order created successfully. Awaiting inventory confirmation.',
+            message: 'Order created successfully',
             data: {
-                orderId: order.order_id,
-                productId: order.product_id,
+                id: order._id,
+                productId: order.productId,
                 quantity: order.quantity,
                 amount: order.amount,
-                status: order.status
+                status: order.status,
+                createdAt: order.created_at,
+                updatedAt: order.updated_at
             }
         });
 
     } catch (error) {
         console.error('❌ Error in create order route:', error);
+
+        // Handle specific error types
+        if (error.message.includes('Inventory reservation failed')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Inventory reservation failed',
+                message: error.message
+            });
+        }
+
+        if (error.message.includes('Payment failed')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Payment failed',
+                message: error.message
+            });
+        }
+
+        if (error.message.includes('Failed to publish order event')) {
+            return res.status(500).json({
+                success: false,
+                error: 'Event publishing failed',
+                message: error.message
+            });
+        }
+
+        // Generic error
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'Failed to create order',
+            message: error.message
         });
     }
 };
@@ -44,7 +75,7 @@ exports.createOrderController = async (req, res) => {
 exports.getOrderController = async (req, res) => {
     try {
         const order = await orderService.getOrder(req.params.orderId);
-        
+
         if (!order) {
             return res.status(404).json({
                 success: false,
