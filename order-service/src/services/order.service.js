@@ -3,12 +3,13 @@ const Order = require("../models/Order");
 const OrderAudit = require("../models/OrderAudit");
 const { publishEvent } = require("../kafka/producer");
 
+// Store pending transactions
 const pendingTransactions = new Map();
+
 // ============ CREATE ORDER ============
 async function createOrder(orderData) {
     const session = await mongoose.startSession();
-    const orderId = null;
-
+    
     try {
         session.startTransaction();
 
@@ -47,7 +48,10 @@ async function createOrder(orderData) {
         pendingTransactions.set(orderIdStr, {
             session,
             orderId: orderIdStr,
+            orderDoc,
             status: 'PENDING',
+            inventoryStatus: null,
+            paymentStatus: null,
             resolved: false
         });
 
@@ -78,7 +82,7 @@ async function createOrder(orderData) {
             throw new Error(`Inventory reservation failed`);
         }
 
-        // Update order status to INVENTORY_RESERVED
+        // Update order status to INVENTORY_RESERVED (within the same transaction)
         await Order.findByIdAndUpdate(
             orderDoc._id,
             {
@@ -89,6 +93,22 @@ async function createOrder(orderData) {
                 session
             }
         );
+
+        // Add inventory audit log
+        const transactionData = pendingTransactions.get(orderIdStr);
+        if (transactionData && transactionData.inventoryData) {
+            await OrderAudit.create(
+                [
+                    {
+                        orderId: orderDoc._id,
+                        action: "INVENTORY_RESERVED",
+                        message: `Inventory reserved for order ${orderIdStr}`,
+                        metadata: transactionData.inventoryData
+                    }
+                ],
+                { session }
+            );
+        }
 
         // Wait for payment response (with timeout)
         const paymentResult = await waitForPaymentResponse(orderIdStr);
@@ -113,15 +133,14 @@ async function createOrder(orderData) {
         );
 
         // Add payment success audit log
+        const paymentData = pendingTransactions.get(orderIdStr)?.paymentData;
         await OrderAudit.create(
             [
                 {
                     orderId: orderDoc._id,
                     action: "PAYMENT_SUCCESS",
-                    message: `Payment completed for order ${orderDoc._id}`,
-                    metadata: {
-                        amount: orderData.amount
-                    }
+                    message: `Payment completed for order ${orderIdStr}`,
+                    metadata: paymentData || { amount: orderData.amount }
                 }
             ],
             { session }
@@ -154,19 +173,21 @@ async function waitForInventoryResponse(orderId, timeout = 30000) {
         const startTime = Date.now();
         const checkInterval = setInterval(() => {
             const transaction = pendingTransactions.get(orderId);
-
-            if (transaction && transaction.inventoryStatus === 'SUCCESS') {
-                clearInterval(checkInterval);
-                resolve('SUCCESS');
-                return;
+            
+            if (transaction) {
+                if (transaction.inventoryStatus === 'SUCCESS') {
+                    clearInterval(checkInterval);
+                    resolve('SUCCESS');
+                    return;
+                }
+                
+                if (transaction.inventoryStatus === 'FAILED') {
+                    clearInterval(checkInterval);
+                    resolve('FAILED');
+                    return;
+                }
             }
-
-            if (transaction && transaction.inventoryStatus === 'FAILED') {
-                clearInterval(checkInterval);
-                resolve('FAILED');
-                return;
-            }
-
+            
             // Check timeout
             if (Date.now() - startTime > timeout) {
                 clearInterval(checkInterval);
@@ -184,19 +205,21 @@ async function waitForPaymentResponse(orderId, timeout = 30000) {
         const startTime = Date.now();
         const checkInterval = setInterval(() => {
             const transaction = pendingTransactions.get(orderId);
-
-            if (transaction && transaction.paymentStatus === 'SUCCESS') {
-                clearInterval(checkInterval);
-                resolve('SUCCESS');
-                return;
+            
+            if (transaction) {
+                if (transaction.paymentStatus === 'SUCCESS') {
+                    clearInterval(checkInterval);
+                    resolve('SUCCESS');
+                    return;
+                }
+                
+                if (transaction.paymentStatus === 'FAILED') {
+                    clearInterval(checkInterval);
+                    resolve('FAILED');
+                    return;
+                }
             }
-
-            if (transaction && transaction.paymentStatus === 'FAILED') {
-                clearInterval(checkInterval);
-                resolve('FAILED');
-                return;
-            }
-
+            
             // Check timeout
             if (Date.now() - startTime > timeout) {
                 clearInterval(checkInterval);
@@ -210,226 +233,79 @@ async function waitForPaymentResponse(orderId, timeout = 30000) {
 
 // ============ HANDLE INVENTORY RESERVED ============
 async function handleInventoryReserved(data) {
-    const session = await mongoose.startSession();
-
-    try {
-        session.startTransaction();
-
-        const order = await Order.findByIdAndUpdate(
-            data.orderId,
-            {
-                status: "INVENTORY_RESERVED",
-                updated_at: new Date()
-            },
-            {
-                new: true,
-                session
-            }
-        );
-
-        if (!order) {
-            throw new Error(`Order ${data.orderId} not found`);
-        }
-
-        await OrderAudit.create(
-            [
-                {
-                    orderId: order._id,
-                    action: "INVENTORY_RESERVED",
-                    message: `Inventory reserved for order ${data.orderId}`,
-                    metadata: {
-                        productId: data.productId,
-                        quantity: data.quantity,
-                        reservationId: data.reservationId
-                    }
-                }
-            ],
-            { session }
-        );
-
-        await session.commitTransaction();
-        console.log(`📦 Inventory reserved for order: ${data.orderId}`);
-
-    } catch (error) {
-        if (session.transaction && session.transaction.isActive) {
-            await session.abortTransaction();
-        }
-        console.error('❌ Error handling inventory reserved:', error);
-        throw error;
-    } finally {
-        session.endSession();
+    console.log(`📦 Inventory RESERVED for order: ${data.orderId}`);
+    
+    // Update the pending transaction status with data
+    const transaction = pendingTransactions.get(data.orderId);
+    if (transaction) {
+        transaction.inventoryStatus = 'SUCCESS';
+        transaction.inventoryData = {
+            productId: data.productId,
+            quantity: data.quantity,
+            reservationId: data.reservationId || 'N/A'
+        };
+        console.log(`✅ Inventory SUCCESS for order: ${data.orderId}`);
+    } else {
+        // If transaction not found, the order might already be committed or failed
+        console.log(`⚠️ No pending transaction found for order: ${data.orderId}`);
     }
 }
 
 // ============ HANDLE INVENTORY FAILED ============
 async function handleInventoryFailed(data) {
-    const session = await mongoose.startSession();
-
-    try {
-        session.startTransaction();
-
-        const order = await Order.findByIdAndUpdate(
-            data.orderId,
-            {
-                status: "FAILED",
-                failure_reason: data.reason || data.message || "Inventory reservation failed",
-                updated_at: new Date()
-            },
-            {
-                new: true,
-                session
-            }
-        );
-
-        if (!order) {
-            throw new Error(`Order ${data.orderId} not found`);
-        }
-
-        await OrderAudit.create(
-            [
-                {
-                    orderId: order._id,
-                    action: "INVENTORY_FAILED",
-                    message: `Inventory reservation failed: ${data.reason || data.message}`,
-                    metadata: {
-                        productId: data.productId,
-                        quantity: data.quantity,
-                        reason: data.reason,
-                        availableStock: data.availableStock,
-                        requestedQuantity: data.requestedQuantity
-                    }
-                }
-            ],
-            { session }
-        );
-
-        await session.commitTransaction();
-        console.log(`❌ Inventory failed for order: ${data.orderId}`);
-
-    } catch (error) {
-        if (session.transaction && session.transaction.isActive) {
-            await session.abortTransaction();
-        }
-        console.error('❌ Error handling inventory failed:', error);
-        throw error;
-    } finally {
-        session.endSession();
+    console.log(`❌ Inventory FAILED for order: ${data.orderId}`);
+    
+    // Update the pending transaction status
+    const transaction = pendingTransactions.get(data.orderId);
+    if (transaction) {
+        transaction.inventoryStatus = 'FAILED';
+        transaction.inventoryData = {
+            productId: data.productId,
+            quantity: data.quantity,
+            reason: data.reason || data.message || 'Unknown error',
+            availableStock: data.availableStock,
+            requestedQuantity: data.requestedQuantity
+        };
+        console.log(`🔄 Marked inventory as FAILED for order: ${data.orderId}`);
+    } else {
+        console.log(`⚠️ No pending transaction found for order: ${data.orderId}`);
     }
 }
 
 // ============ HANDLE PAYMENT SUCCESS ============
 async function handlePaymentSuccess(data) {
-    const session = await mongoose.startSession();
-
-    try {
-        session.startTransaction();
-
-        const order = await Order.findByIdAndUpdate(
-            data.orderId,
-            {
-                status: "PAID",
-                updated_at: new Date()
-            },
-            {
-                new: true,
-                session
-            }
-        );
-
-        if (!order) {
-            throw new Error(`Order ${data.orderId} not found`);
-        }
-
-        await OrderAudit.create(
-            [
-                {
-                    orderId: order._id,
-                    action: "PAYMENT_SUCCESS",
-                    message: `Payment completed for order ${data.orderId}`,
-                    metadata: {
-                        paymentId: data.paymentId,
-                        amount: data.amount
-                    }
-                }
-            ],
-            { session }
-        );
-
-        await session.commitTransaction();
-        console.log(`💳 Payment completed for order: ${data.orderId}`);
-
-    } catch (error) {
-        if (session.transaction && session.transaction.isActive) {
-            await session.abortTransaction();
-        }
-        console.error('❌ Error handling payment success:', error);
-        throw error;
-    } finally {
-        session.endSession();
+    console.log(`💳 Payment SUCCESS for order: ${data.orderId}`);
+    
+    // Update the pending transaction status with data
+    const transaction = pendingTransactions.get(data.orderId);
+    if (transaction) {
+        transaction.paymentStatus = 'SUCCESS';
+        transaction.paymentData = {
+            paymentId: data.paymentId || 'N/A',
+            amount: data.amount
+        };
+        console.log(`✅ Payment SUCCESS for order: ${data.orderId}`);
+    } else {
+        console.log(`⚠️ No pending transaction found for order: ${data.orderId}`);
     }
 }
 
 // ============ HANDLE PAYMENT FAILED ============
 async function handlePaymentFailed(data) {
-    const session = await mongoose.startSession();
-
-    try {
-        session.startTransaction();
-
-        const order = await Order.findByIdAndUpdate(
-            data.orderId,
-            {
-                status: "FAILED",
-                failure_reason: data.error || "Payment failed",
-                updated_at: new Date()
-            },
-            {
-                new: true,
-                session
-            }
-        );
-
-        if (!order) {
-            throw new Error(`Order ${data.orderId} not found`);
-        }
-
-        await OrderAudit.create(
-            [
-                {
-                    orderId: order._id,
-                    action: "PAYMENT_FAILED",
-                    message: `Payment failed: ${data.error || "Unknown error"}`,
-                    metadata: {
-                        paymentId: data.paymentId,
-                        amount: data.amount,
-                        error: data.error
-                    }
-                }
-            ],
-            { session }
-        );
-
-        await session.commitTransaction();
-        console.log(`❌ Payment failed for order: ${data.orderId}`);
-
-        try {
-            await publishEvent("order-failed", {
-                orderId: data.orderId,
-                reason: data.error || "Payment failed"
-            });
-            console.log(`🔄 Compensation event published for order: ${data.orderId}`);
-        } catch (kafkaError) {
-            console.error(`⚠️ Failed to publish compensation event: ${kafkaError.message}`);
-        }
-
-    } catch (error) {
-        if (session.transaction && session.transaction.isActive) {
-            await session.abortTransaction();
-        }
-        console.error('❌ Error handling payment failed:', error);
-        throw error;
-    } finally {
-        session.endSession();
+    console.log(`❌ Payment FAILED for order: ${data.orderId}`);
+    
+    // Update the pending transaction status
+    const transaction = pendingTransactions.get(data.orderId);
+    if (transaction) {
+        transaction.paymentStatus = 'FAILED';
+        transaction.paymentData = {
+            paymentId: data.paymentId || 'N/A',
+            amount: data.amount,
+            error: data.error || 'Unknown error'
+        };
+        console.log(`🔄 Marked payment as FAILED for order: ${data.orderId}`);
+    } else {
+        console.log(`⚠️ No pending transaction found for order: ${data.orderId}`);
     }
 }
 
