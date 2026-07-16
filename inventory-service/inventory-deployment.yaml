@@ -24,7 +24,7 @@ spec:
         imagePullPolicy: Always
 
         ports:
-        - containerPort: 3001
+        - containerPort: 3002
 
         env:
         - name: MONGO_URI
@@ -34,7 +34,7 @@ spec:
               key: MONGO_URI
 
         - name: PORT
-          value: "3001"
+          value: "3002"
 
         - name: CLIENT_ID
           value: "inventory-service"
