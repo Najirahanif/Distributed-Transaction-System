@@ -33,8 +33,6 @@ const startServer = async () => {
         // 5. Start Express Server
         app.listen(PORT, () => {
             console.log(`🚀 Order Service running on port ${PORT}`);
-            console.log(`📡 Health: http://localhost:${PORT}/api/health`);
-            console.log(`📡 API: http://localhost:${PORT}/api/orders`);
         });
 
     } catch (error) {
