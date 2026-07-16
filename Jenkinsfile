@@ -140,10 +140,12 @@ MONGO_URI=${MONGO_URI}
         }
         stage('Deploy Kafka') {
             steps {
-                sh '''
-                    kubectl apply -f kubernetes/kafka-deployment.yaml
-                    kubectl apply -f kubernetes/kafka-service.yaml
-                '''
+                dir('order-service') {
+                    sh '''
+                        kubectl apply -f kubernetes/kafka-deployment.yaml
+                        kubectl apply -f kubernetes/kafka-service.yaml
+                    '''
+                }
             }
         }
 
@@ -157,10 +159,12 @@ MONGO_URI=${MONGO_URI}
 
         stage('Deploy Order Service') {
             steps {
-                sh '''
-                    kubectl apply -f kubernetes/order-deployment.yaml
-                    kubectl apply -f kubernetes/order-service.yaml
-                '''
+                dir('order-service') {
+                    sh '''
+                        kubectl apply -f kubernetes/order-deployment.yaml
+                        kubectl apply -f kubernetes/order-service.yaml
+                    '''
+                }
             }
         }
 
