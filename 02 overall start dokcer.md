@@ -55,6 +55,28 @@ echo "📦 Initialize inventory:"
 echo "curl -X POST http://localhost:3002/api/inventory/init -H 'Content-Type: application/json' -d '{\"productId\":\"prod_001\",\"stock\":100}'""
 ```
 
+```bash 
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{PORT FORWARDING }}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+## For the Order Service:
+kubectl port-forward svc/order-service 3001:3001 -n ecommerce
+
+## Inventory Service:
+kubectl port-forward svc/inventory-service 3002:3002 -n ecommerce
+
+## Payment Service:
+kubectl port-forward svc/payment-service 3003:3003 -n ecommerce
+
+## Then access:
+http://localhost:3001
+http://localhost:3002
+http://localhost:3003
+
+```
+
 
 
 ```bash
@@ -117,3 +139,7 @@ curl -s http://localhost:3003/payment/order/$ORDER_ID | jq .
 echo ""
 
 echo "✅ Test Complete!"
+
+
+
+
