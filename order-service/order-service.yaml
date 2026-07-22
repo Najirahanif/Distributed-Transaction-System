@@ -13,4 +13,5 @@ spec:
   - port: 3001
     targetPort: 3001
 
-  type: NodePort
+  type: NodePort # used for external (outside kubernetes)
+  # type: ClusterIP #  used when there is a internal communication between microservices 
