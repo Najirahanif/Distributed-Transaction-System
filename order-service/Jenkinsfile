@@ -90,7 +90,7 @@ MONGO_URI=${MONGO_URI}
         stage('Build Docker Image') {
             steps {
                 dir('order-service') {
-                    sh 'docker build -t order-service:1.0 .'
+                    sh 'docker build -t order-service:2.0 .'
                 }
             }
         }
@@ -103,7 +103,7 @@ MONGO_URI=${MONGO_URI}
                     docker run -d \
                         --name order-service-container \
                         -p 3001:3001 \
-                        order-service:1.0
+                        order-service:2.0
                 '''
             }
         }
@@ -129,7 +129,7 @@ MONGO_URI=${MONGO_URI}
 
         stage('Tag Docker Image') {
             steps {
-                sh 'docker tag order-service:1.0 najira/order-service:2.0'
+                sh 'docker tag order-service:2.0 najira/order-service:2.0'
             }
         }
 

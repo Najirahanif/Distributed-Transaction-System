@@ -64,7 +64,8 @@ async function createOrder(orderData) {
                 amount: orderDoc.amount,
                 status: orderDoc.status,
             });
-            console.log("✅ Kafka Event Published for order:=======>", orderIdStr);
+            console.log("✅ Kafka Event Published for order:================>", orderIdStr);
+            console.log("productId: orderDoc.productId", orderDoc.productId);
         } catch (kafkaError) {
             console.error("❌ Kafka publish failed:", kafkaError.message);
             pendingTransactions.delete(orderIdStr);
