@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: order-service
-        image: najira/order-service:1.0
+        image: najira/order-service:2.0
         imagePullPolicy: Always
 
         ports:
