@@ -168,10 +168,35 @@ MONGO_URI=${MONGO_URI}
             }
         }
 
+        stage('Deploy HPA') {
+            steps {
+                dir('order-service') {
+                    sh '''
+                        kubectl apply -f order-hpa.yaml
+                    '''
+                }
+            }
+        }
+
         stage('Wait for Order Service') {
             steps {
                 sh '''
                     kubectl rollout status deployment/order-service -n ecommerce
+                '''
+            }
+        }
+
+        stage('Verify HPA') {
+            steps {
+                sh '''
+                    echo "===== HPA ====="
+                    kubectl get hpa -n ecommerce
+
+                    echo "===== Deployments ====="
+                    kubectl get deployments -n ecommerce
+
+                    echo "===== Pods ====="
+                    kubectl get pods -n ecommerce
                 '''
             }
         }
