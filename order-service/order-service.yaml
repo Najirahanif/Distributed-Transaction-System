@@ -12,7 +12,7 @@ spec:
   ports:
   - port: 3001
     targetPort: 3001
-    nodePort: 30869
+    # nodePort: 30869
 
   # type: NodePort # used for external (outside kubernetes)
   # for the use of ingress and used ingress controller called ngnix controller
