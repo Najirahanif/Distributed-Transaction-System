@@ -5,14 +5,22 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraPortMappings:
-      - containerPort: 30869
-        hostPort: 30869
-        protocol: TCP
+    # this is for node port setting 
+      # - containerPort: 30869
+      #   hostPort: 30869
+      #   protocol: TCP
 
-      - containerPort: 32580
-        hostPort: 32580
-        protocol: TCP
+      # - containerPort: 32580
+      #   hostPort: 32580
+      #   protocol: TCP
 
-      - containerPort: 30132
-        hostPort: 30132
-        protocol: TCP
+      # - containerPort: 30132
+      #   hostPort: 30132
+      #   protocol: TCP
+
+      # this is for ingress => only to allow traffic from your Mac to enter the Kind cluster through ports 80 and 443
+      - containerPort: 80
+        hostPort: 80
+
+      - containerPort: 443
+        hostPort: 443

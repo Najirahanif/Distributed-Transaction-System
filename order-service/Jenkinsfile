@@ -200,7 +200,8 @@ MONGO_URI=${MONGO_URI}
                 '''
             }
         }
-
+        
+        // use when you use a load balancer
         stage('Configure MetalLB') {
             steps {
                 dir('order-service') {

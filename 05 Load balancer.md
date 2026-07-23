@@ -310,3 +310,46 @@ LoadBalancer gets external IP
 **Do not recreate your Kind cluster inside every Jenkins build.** That would destroy your Kubernetes resources.
 
 Also, one correction to your current approach: if your actual goal is to expose **all three microservices through one public entry point**, then `LoadBalancer` for every service is not the best design. Use one external LoadBalancer with an Ingress Controller, and keep `order-service`, `payment-service`, and `inventory-service` as `ClusterIP`. But if your goal right now is specifically to **learn and verify how a Kubernetes `LoadBalancer` works**, the MetalLB steps above are the correct path.
+
+
+
+Do this now
+## 1. Delete the completed Pod
+kubectl delete pod test-client
+
+Verify:
+
+kubectl get pod test-client
+
+You should get:
+
+Error from server (NotFound)
+## 2. Create a new long-running Pod
+kubectl run test-client \
+  --image=curlimages/curl \
+  --restart=Never \
+  --command -- sleep 300
+
+Wait until:
+
+kubectl get pod test-client
+
+shows:
+
+READY   STATUS
+1/1     Running
+## 3. Run your 10 requests
+for i in {1..10}; do
+  kubectl exec test-client -- \
+    curl -s http://172.18.250.200:3001/health/ready
+  echo
+done
+
+Now it will work because the Pod is still running.
+
+## 4. Delete the test Pod afterward
+kubectl delete pod test-client
+
+
+
+this works only inside the kubernetes not on your mac

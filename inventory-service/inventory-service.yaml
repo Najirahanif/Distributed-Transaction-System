@@ -12,5 +12,5 @@ spec:
   ports:
   - port: 3002
     targetPort: 3002
-    nodePort: 32580
-  type: NodePort
+    # nodePort: 32580
+  type: ClusterIP
