@@ -201,6 +201,16 @@ MONGO_URI=${MONGO_URI}
             }
         }
 
+        stage('Configure MetalLB') {
+            steps {
+                dir('order-service') {
+                    sh '''
+                        kubectl apply -f metallb-config.yaml
+                    '''
+                }
+            }
+        }
+
         stage('Verify Kubernetes Resources') {
             steps {
                 sh '''

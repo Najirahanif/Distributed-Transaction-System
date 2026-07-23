@@ -1,48 +1,99 @@
+Here is the **simple last-minute command flow**:
+
+1. **Delete old cluster**
+
+   ```bash
+   kind delete cluster --name microservices
+   ```
+
+2. **Create `kind-config.yaml`**
+
+   ```yaml
+   kind: Cluster
+   apiVersion: kind.x-k8s.io/v1alpha4
+
+   nodes:
+     - role: control-plane
+       extraPortMappings:
+         - containerPort: 30869
+           hostPort: 30869
+         - containerPort: 32580
+           hostPort: 32580
+         - containerPort: 30132
+           hostPort: 30132
+   ```
+
+3. **Create cluster**
+
+   ```bash
+   kind create cluster --name microservices --config kind-config.yaml
+   ```
+
+4. **Check node**
+
+   ```bash
+   kubectl get nodes
+   ```
+
+5. **Create namespace**
+
+   ```bash
+   kubectl create namespace ecommerce
+   ```
+
+6. **Create MongoDB secrets**
+
+   ```bash
+   kubectl create secret generic order-mongo-secret \
+   --from-literal=MONGO_URI="ORDER_MONGO_URI" -n ecommerce
+   ```
+
+   ```bash
+   kubectl create secret generic inventory-mongo-secret \
+   --from-literal=MONGO_URI="INVENTORY_MONGO_URI" -n ecommerce
+   ```
+
+   ```bash
+   kubectl create secret generic payment-mongo-secret \
+   --from-literal=MONGO_URI="PAYMENT_MONGO_URI" -n ecommerce
+   ```
+
+7. **Deploy Kafka**
 ```bash
-najirabanum@NAJIRAs-MacBook-Air order-service % curl http://localhost:30869/health/live
-
-{"status":"alive"}%                                                                                
-najirabanum@NAJIRAs-MacBook-Air order-service % docker port microservices-control-plane
-6443/tcp -> 127.0.0.1:53052
-30869/tcp -> 0.0.0.0:30869
-najirabanum@NAJIRAs-MacBook-Air order-service % kind delete cluster --name microservices
-
-Deleting cluster "microservices" ...
-Deleted nodes: ["microservices-control-plane"]
-najirabanum@NAJIRAs-MacBook-Air order-service % kind create cluster \
-  --name microservices \
-  --config kind-config.yaml
-Creating cluster "microservices" ...
- ✓ Ensuring node image (kindest/node:v1.36.1) 🖼
- ✓ Preparing nodes 📦  
- ✓ Writing configuration 📜 
- ✓ Starting control-plane 🕹️ 
- ✓ Installing CNI 🔌 
- ✓ Installing StorageClass 💾 
-Set kubectl context to "kind-microservices"
-You can now use your cluster with:
-
-kubectl cluster-info --context kind-microservices
-
-Have a nice day! 👋
-najirabanum@NAJIRAs-MacBook-Air order-service % kubectl create namespace ecommerce
-
-namespace/ecommerce created
-najirabanum@NAJIRAs-MacBook-Air order-service % kubectl create secret generic order-mongo-secret --from-literal=MONGO_URI="mongodb+srv://najirabanu_db_user:nkGTduHdyrT9NcsS@cluster0.5s1dm1u.mongodb.net/order-db?retryWrites=true&w=majority&appName=Cluster0" -n ecommerce
-
-secret/order-mongo-secret created
-najirabanum@NAJIRAs-MacBook-Air order-service % kubectl create secret generic inventory-mongo-secret --from-literal=MONGO_URI="mongodb+srv://najirabanu_db_user:nkGTduHdyrT9NcsS@cluster0.5s1dm1u.mongodb.net/inventory-db?retryWrites=true&w=majority&appName=Cluster0" -n ecommerce
-
-secret/inventory-mongo-secret created
-najirabanum@NAJIRAs-MacBook-Air order-service % kubectl create secret generic payment-mongo-secret --from-literal=MONGO_URI="mongodb+srv://najirabanu_db_user:nkGTduHdyrT9NcsS@cluster0.5s1dm1u.mongodb.net/payment-db?retryWrites=true&w=majority&appName=Cluster0" -n ecommerce
-
-secret/payment-mongo-secret created
-najirabanum@NAJIRAs-MacBook-Air order-service % curl http://localhost:32580/
-curl: (56) Recv failure: Connection reset by peer
-najirabanum@NAJIRAs-MacBook-Air order-service % docker port microservices-control-plane
-6443/tcp -> 127.0.0.1:53610
-30132/tcp -> 0.0.0.0:30132
-30869/tcp -> 0.0.0.0:30869
-32580/tcp -> 0.0.0.0:32580
-najirabanum@NAJIRAs-MacBook-Air order-service % 
+deploy using a jenkins
 ```
+
+8. **Check all Pods**
+
+```bash
+kubectl get pods -n ecommerce
+```
+
+9. **Check Services**
+
+```bash
+kubectl get svc -n ecommerce
+```
+
+10. **Required NodePorts**
+
+```text
+Order     → 30869
+Inventory → 32580
+Payment   → 30132
+```
+
+11. **Test Order**
+because here i added readiness and liveliness probe
+```bash
+curl http://localhost:30869/health/live
+```
+
+12. **Test Inventory and Payment**
+
+```bash
+curl http://localhost:32580
+curl http://localhost:30132
+```
+
+**Important:** `kind-config.yaml` ports and `nodePort` values in your Service YAML must match exactly.
