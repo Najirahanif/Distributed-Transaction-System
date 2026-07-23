@@ -12,5 +12,5 @@ spec:
   ports:
   - port: 3003
     targetPort: 3003
-
+    nodeport: 30132
   type: NodePort
