@@ -9,7 +9,7 @@ const app = express();
 
 app.use(express.json());
 
-app.get("/", (req, res) => {
+app.get("/payments", (req, res) => {
     res.json({
         success: true,
         message: "Payment Service is running..."

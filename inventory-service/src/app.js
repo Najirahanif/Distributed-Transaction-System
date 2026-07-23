@@ -9,7 +9,7 @@ const app = express();
 
 app.use(express.json());
 
-app.get("/", (req, res) => {
+app.get("/inventory", (req, res) => {
     res.json({
         success: true,
         message: "Inventory Service is running..."
