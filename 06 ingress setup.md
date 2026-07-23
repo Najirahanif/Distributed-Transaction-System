@@ -151,7 +151,7 @@ spec:
   ingressClassName: nginx
 
   rules:
-    - host: distributed.services
+    - host: distributed.service
 
       http:
         paths:
@@ -190,7 +190,7 @@ sudo nano /etc/hosts
 Add:
 
 ```text
-127.0.0.1 distributed.services
+127.0.0.1 distributed.service
 ```
 
 Save:
@@ -204,7 +204,7 @@ CTRL + X
 Now your Mac resolves:
 
 ```text
-distributed.services
+distributed.service
 ```
 
 to:
@@ -220,7 +220,7 @@ to:
 Now run:
 
 ```bash
-curl http://distributed.services/health/ready
+curl http://distributed.service/health/ready
 ```
 
 Expected:
@@ -232,7 +232,7 @@ Expected:
 Or open:
 
 ```text
-http://distributed.services/health/ready
+http://distributed.service/health/ready
 ```
 
 in your browser.
@@ -240,7 +240,7 @@ in your browser.
 ## Final architecture
 
 ```text
-http://distributed.services/health/ready
+http://distributed.service/health/ready
               |
               v
         127.0.0.1:80
@@ -248,7 +248,7 @@ http://distributed.services/health/ready
               v
     NGINX Ingress Controller
               |
-              | host = distributed.services
+              | host = distributed.service
               v
         order-service
               |
@@ -259,7 +259,7 @@ http://distributed.services/health/ready
 For your microservices, you can later use:
 
 ```text
-distributed.services       → order-service
+distributed.service       → order-service
 payment.local     → payment-service
 inventory.local   → inventory-service
 ```

@@ -9,7 +9,7 @@ spec:
   ingressClassName: nginx
 
   rules:
-    - host: distributed.services
+    - host: distributed.service
 
       http:
         paths:
