@@ -200,17 +200,17 @@ MONGO_URI=${MONGO_URI}
                 '''
             }
         }
-        
+
         // use when you use a load balancer
-        stage('Configure MetalLB') {
-            steps {
-                dir('order-service') {
-                    sh '''
-                        kubectl apply -f metallb-config.yaml
-                    '''
-                }
-            }
-        }
+        // stage('Configure MetalLB') {
+        //     steps {
+        //         dir('order-service') {
+        //             sh '''
+        //                 kubectl apply -f metallb-config.yaml
+        //             '''
+        //         }
+        //     }
+        // }
 
         stage('Verify Kubernetes Resources') {
             steps {

@@ -63,6 +63,11 @@ kind create cluster \
 
 ⚠️ This deletes your existing Kubernetes resources.
 
+ **Create namespace**
+
+   ```bash
+   kubectl create namespace ecommerce
+   ```
 ---
 
 ### 2. Install an Ingress Controller
