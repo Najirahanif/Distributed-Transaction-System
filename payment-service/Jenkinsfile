@@ -101,7 +101,7 @@ MONGO_URI=${MONGO_URI}
 
                     docker run -d \
                         --name payment-service-container \
-                        -p 3002:3002 \
+                        -p 3003:3003 \
                         payment-service:1.0
                 '''
             }
