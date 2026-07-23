@@ -212,6 +212,15 @@ MONGO_URI=${MONGO_URI}
         //     }
         // }
 
+        stage('Deploy Ingress') {
+            steps {
+                sh '''
+                    kubectl apply -f ecommerce-ingress.yaml
+                    kubectl get ingress -n ecommerce
+                '''
+            }
+        }
+
         stage('Verify Kubernetes Resources') {
             steps {
                 sh '''
