@@ -36,7 +36,7 @@ spec:
 
         readinessProbe:
           httpGet:
-            path: /health/ready        # Kubernetes calls this endpoint to check if the Pod is ready
+            path: /orders/health/ready        # Kubernetes calls this endpoint to check if the Pod is ready
             port: 3001                 # Port where the application is running
 
           initialDelaySeconds: 5       # Wait 5 seconds after the container starts before the first check
@@ -48,7 +48,7 @@ spec:
           failureThreshold: 3         # After 3 consecutive failures, mark the Pod as NotReady
         livenessProbe:
           httpGet:
-            path: /health/live
+            path: /orders/health/live
             port: 3001
           initialDelaySeconds: 15
           periodSeconds: 20
