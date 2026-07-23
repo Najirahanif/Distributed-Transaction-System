@@ -233,7 +233,7 @@ MONGO_URI=${MONGO_URI}
                     echo "===== Services ====="
                     kubectl get svc -n ecommerce
                 '''
-            }
+            } 
         }
 
         stage('Application Logs') {
