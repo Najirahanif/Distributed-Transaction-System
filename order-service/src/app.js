@@ -13,14 +13,16 @@ app.use(express.json());
 // Readiness Probe
 app.get("/health/ready", (req, res) => {
     res.status(200).json({
-        status: "ready"
+        status: "ready",
+        pod: process.env.HOSTNAME
     });
 });
 
 // Liveness Probe
 app.get("/health/live", (req, res) => {
     res.status(200).json({
-        status: "alive"
+        status: "alive",
+        pod: process.env.HOSTNAME
     });
 });
 
