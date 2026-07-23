@@ -17,4 +17,4 @@ spec:
   # type: NodePort # used for external (outside kubernetes)
   # for the use of ingress and used ingress controller called ngnix controller
   type: ClusterIP #  used when there is a internal communication between microservices 
-  type: LoadBalancer #LoadBalancer is a Kubernetes Service type that exposes your application to the outside world using an external IP address.
+  # type: LoadBalancer #LoadBalancer is a Kubernetes Service type that exposes your application to the outside world using an external IP address.
