@@ -214,10 +214,12 @@ MONGO_URI=${MONGO_URI}
 
         stage('Deploy Ingress') {
             steps {
-                sh '''
-                    kubectl apply -f order-ingress.yaml
-                    kubectl get ingress -n ecommerce
-                '''
+                dir('order-service') {
+                    sh '''
+                        kubectl apply -f order-ingress.yaml
+                        kubectl get ingress -n ecommerce
+                    '''
+                }
             }
         }
 
