@@ -171,8 +171,10 @@ async function createOrder(orderData) {
 
 // Helper function to wait for inventory response
 async function waitForInventoryResponse(orderId, timeout = 70000) {
+    console.log("gettin")
     return new Promise((resolve) => {
         const startTime = Date.now();
+        console.log('startTime: ', startTime);
         const checkInterval = setInterval(() => {
             const transaction = pendingTransactions.get(orderId);
             console.log('transaction: ', transaction);
