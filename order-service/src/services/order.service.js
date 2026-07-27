@@ -45,6 +45,7 @@ async function createOrder(orderData) {
 
         // Store session and orderId for later commit/abort
         const orderIdStr = orderDoc._id.toString();
+        console.log('orderIdStr:>>>>>>>>>>>>. ', orderIdStr);
         pendingTransactions.set(orderIdStr, {
             session,
             orderId: orderIdStr,
