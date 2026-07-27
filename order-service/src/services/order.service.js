@@ -170,7 +170,7 @@ async function createOrder(orderData) {
 }
 
 // Helper function to wait for inventory response
-async function waitForInventoryResponse(orderId, timeout = 30000) {
+async function waitForInventoryResponse(orderId, timeout = 70000) {
     return new Promise((resolve) => {
         const startTime = Date.now();
         const checkInterval = setInterval(() => {
