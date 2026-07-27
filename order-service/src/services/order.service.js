@@ -175,6 +175,7 @@ async function waitForInventoryResponse(orderId, timeout = 70000) {
         const startTime = Date.now();
         const checkInterval = setInterval(() => {
             const transaction = pendingTransactions.get(orderId);
+            console.log('transaction: ', transaction);
             
             if (transaction) {
                 if (transaction.inventoryStatus === 'SUCCESS') {
