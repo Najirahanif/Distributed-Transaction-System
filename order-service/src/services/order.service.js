@@ -46,6 +46,7 @@ async function createOrder(orderData) {
         // Store session and orderId for later commit/abort
         const orderIdStr = orderDoc._id.toString();
         console.log('orderIdStr:>>>>>>>>>>>>. ', orderIdStr);
+        
         pendingTransactions.set(orderIdStr, {
             session,
             orderId: orderIdStr,
@@ -53,7 +54,9 @@ async function createOrder(orderData) {
             status: 'PENDING',
             inventoryStatus: null,
             paymentStatus: null,
-            resolved: false
+            resolved: false,
+            inventoryData: null,
+            paymentData: null
         });
 
         // Publish Event to Kafka
@@ -66,7 +69,6 @@ async function createOrder(orderData) {
                 status: orderDoc.status,
             });
             console.log("✅ Kafka Event Published for order:================>", orderIdStr);
-            console.log("productId: orderDoc.productId", orderDoc.productId);
         } catch (kafkaError) {
             console.error("❌ Kafka publish failed:", kafkaError.message);
             pendingTransactions.delete(orderIdStr);
@@ -92,9 +94,7 @@ async function createOrder(orderData) {
                 status: "INVENTORY_RESERVED",
                 updated_at: new Date()
             },
-            {
-                session
-            }
+            { session }
         );
 
         // Add inventory audit log
@@ -115,6 +115,7 @@ async function createOrder(orderData) {
 
         // Wait for payment response (with timeout)
         const paymentResult = await waitForPaymentResponse(orderIdStr);
+        console.log('paymentResult: ', paymentResult);
 
         if (paymentResult === 'FAILED') {
             console.error(`❌ Payment failed for order: ${orderIdStr}`);
@@ -130,9 +131,7 @@ async function createOrder(orderData) {
                 status: "PAID",
                 updated_at: new Date()
             },
-            {
-                session
-            }
+            { session }
         );
 
         // Add payment success audit log
@@ -178,7 +177,6 @@ async function waitForInventoryResponse(orderId, timeout = 30000) {
         const startTime = Date.now();
 
         const checkInterval = setInterval(() => {
-            console.log("pendingTransactionspendingTransactions",pendingTransactions);
             const transaction = pendingTransactions.get(orderId);
 
             if (transaction) {
@@ -204,12 +202,7 @@ async function waitForInventoryResponse(orderId, timeout = 30000) {
 
             if (Date.now() - startTime > timeout) {
                 clearInterval(checkInterval);
-
-                console.error(
-                    '⏰ Inventory response timeout:',
-                    orderId
-                );
-
+                console.error('⏰ Inventory response timeout:', orderId);
                 resolve('FAILED');
             }
         }, 500);
@@ -218,21 +211,27 @@ async function waitForInventoryResponse(orderId, timeout = 30000) {
 
 // Helper function to wait for payment response
 async function waitForPaymentResponse(orderId, timeout = 30000) {
-    console.log("gettin");
+    console.log('⏳ Waiting for payment:', orderId);
+
     return new Promise((resolve) => {
         const startTime = Date.now();
+        
         const checkInterval = setInterval(() => {
             const transaction = pendingTransactions.get(orderId);
+            
+            console.log(`🔍 Checking payment status for ${orderId}:`, transaction?.paymentStatus);
 
             if (transaction) {
                 if (transaction.paymentStatus === 'SUCCESS') {
                     clearInterval(checkInterval);
+                    console.log(`✅ Payment success detected for ${orderId}`);
                     resolve('SUCCESS');
                     return;
                 }
 
                 if (transaction.paymentStatus === 'FAILED') {
                     clearInterval(checkInterval);
+                    console.log(`❌ Payment failure detected for ${orderId}`);
                     resolve('FAILED');
                     return;
                 }
@@ -253,7 +252,6 @@ async function waitForPaymentResponse(orderId, timeout = 30000) {
 async function handleInventoryReserved(data) {
     console.log(`📦 Inventory RESERVED for order: ${data.orderId}`);
 
-    // Update the pending transaction status with data
     const transaction = pendingTransactions.get(data.orderId);
     if (transaction) {
         transaction.inventoryStatus = 'SUCCESS';
@@ -264,7 +262,6 @@ async function handleInventoryReserved(data) {
         };
         console.log(`✅ Inventory SUCCESS for order: ${data.orderId}`);
     } else {
-        // If transaction not found, the order might already be committed or failed
         console.log(`⚠️ No pending transaction found for order: ${data.orderId}`);
     }
 }
@@ -273,7 +270,6 @@ async function handleInventoryReserved(data) {
 async function handleInventoryFailed(data) {
     console.log(`❌ Inventory FAILED for order: ${data.orderId}`);
 
-    // Update the pending transaction status
     const transaction = pendingTransactions.get(data.orderId);
     if (transaction) {
         transaction.inventoryStatus = 'FAILED';
@@ -294,7 +290,6 @@ async function handleInventoryFailed(data) {
 async function handlePaymentSuccess(data) {
     console.log(`💳 Payment SUCCESS for order: ${data.orderId}`);
 
-    // Update the pending transaction status with data
     const transaction = pendingTransactions.get(data.orderId);
     if (transaction) {
         transaction.paymentStatus = 'SUCCESS';
@@ -302,9 +297,15 @@ async function handlePaymentSuccess(data) {
             paymentId: data.paymentId || 'N/A',
             amount: data.amount
         };
-        console.log(`✅ Payment SUCCESS for order: ${data.orderId}`);
+        console.log(`✅ Payment marked as SUCCESS for order: ${data.orderId}`);
+        console.log(`📊 Updated transaction:`, {
+            orderId: data.orderId,
+            paymentStatus: transaction.paymentStatus,
+            paymentData: transaction.paymentData
+        });
     } else {
         console.log(`⚠️ No pending transaction found for order: ${data.orderId}`);
+        console.log(`🔍 Available transactions:`, Array.from(pendingTransactions.keys()));
     }
 }
 
@@ -312,7 +313,6 @@ async function handlePaymentSuccess(data) {
 async function handlePaymentFailed(data) {
     console.log(`❌ Payment FAILED for order: ${data.orderId}`);
 
-    // Update the pending transaction status
     const transaction = pendingTransactions.get(data.orderId);
     if (transaction) {
         transaction.paymentStatus = 'FAILED';
