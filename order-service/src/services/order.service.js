@@ -180,11 +180,6 @@ async function waitForInventoryResponse(orderId, timeout = 30000) {
         const checkInterval = setInterval(() => {
             const transaction = pendingTransactions.get(orderId);
 
-            console.log('🔍 Checking:', {
-                orderId,
-                transaction
-            });
-
             if (transaction) {
                 console.log(
                     '📊 Current inventory status:',
@@ -222,6 +217,7 @@ async function waitForInventoryResponse(orderId, timeout = 30000) {
 
 // Helper function to wait for payment response
 async function waitForPaymentResponse(orderId, timeout = 30000) {
+    console.log("gettin");
     return new Promise((resolve) => {
         const startTime = Date.now();
         const checkInterval = setInterval(() => {
