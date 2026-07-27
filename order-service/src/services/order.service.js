@@ -9,7 +9,7 @@ const pendingTransactions = new Map();
 // ============ CREATE ORDER ============
 async function createOrder(orderData) {
     const session = await mongoose.startSession();
-    
+
     try {
         session.startTransaction();
 
@@ -171,31 +171,49 @@ async function createOrder(orderData) {
 
 // Helper function to wait for inventory response
 async function waitForInventoryResponse(orderId, timeout = 30000) {
+    console.log('⏳ Waiting for inventory:', orderId);
+
     return new Promise((resolve) => {
         const startTime = Date.now();
+
         const checkInterval = setInterval(() => {
             const transaction = pendingTransactions.get(orderId);
-            
+
+            console.log('🔍 Checking:', {
+                orderId,
+                transaction
+            });
+
             if (transaction) {
+                console.log(
+                    '📊 Current inventory status:',
+                    transaction.inventoryStatus
+                );
+
                 if (transaction.inventoryStatus === 'SUCCESS') {
                     clearInterval(checkInterval);
+                    console.log('✅ Inventory success detected');
                     resolve('SUCCESS');
                     return;
                 }
-                
+
                 if (transaction.inventoryStatus === 'FAILED') {
                     clearInterval(checkInterval);
+                    console.log('❌ Inventory failure detected');
                     resolve('FAILED');
                     return;
                 }
             }
-            
-            // Check timeout
+
             if (Date.now() - startTime > timeout) {
                 clearInterval(checkInterval);
-                console.error(`⏰ Inventory response timeout for order: ${orderId}`);
+
+                console.error(
+                    '⏰ Inventory response timeout:',
+                    orderId
+                );
+
                 resolve('FAILED');
-                return;
             }
         }, 500);
     });
@@ -207,21 +225,21 @@ async function waitForPaymentResponse(orderId, timeout = 30000) {
         const startTime = Date.now();
         const checkInterval = setInterval(() => {
             const transaction = pendingTransactions.get(orderId);
-            
+
             if (transaction) {
                 if (transaction.paymentStatus === 'SUCCESS') {
                     clearInterval(checkInterval);
                     resolve('SUCCESS');
                     return;
                 }
-                
+
                 if (transaction.paymentStatus === 'FAILED') {
                     clearInterval(checkInterval);
                     resolve('FAILED');
                     return;
                 }
             }
-            
+
             // Check timeout
             if (Date.now() - startTime > timeout) {
                 clearInterval(checkInterval);
@@ -236,7 +254,7 @@ async function waitForPaymentResponse(orderId, timeout = 30000) {
 // ============ HANDLE INVENTORY RESERVED ============
 async function handleInventoryReserved(data) {
     console.log(`📦 Inventory RESERVED for order: ${data.orderId}`);
-    
+
     // Update the pending transaction status with data
     const transaction = pendingTransactions.get(data.orderId);
     if (transaction) {
@@ -256,7 +274,7 @@ async function handleInventoryReserved(data) {
 // ============ HANDLE INVENTORY FAILED ============
 async function handleInventoryFailed(data) {
     console.log(`❌ Inventory FAILED for order: ${data.orderId}`);
-    
+
     // Update the pending transaction status
     const transaction = pendingTransactions.get(data.orderId);
     if (transaction) {
@@ -277,7 +295,7 @@ async function handleInventoryFailed(data) {
 // ============ HANDLE PAYMENT SUCCESS ============
 async function handlePaymentSuccess(data) {
     console.log(`💳 Payment SUCCESS for order: ${data.orderId}`);
-    
+
     // Update the pending transaction status with data
     const transaction = pendingTransactions.get(data.orderId);
     if (transaction) {
@@ -295,7 +313,7 @@ async function handlePaymentSuccess(data) {
 // ============ HANDLE PAYMENT FAILED ============
 async function handlePaymentFailed(data) {
     console.log(`❌ Payment FAILED for order: ${data.orderId}`);
-    
+
     // Update the pending transaction status
     const transaction = pendingTransactions.get(data.orderId);
     if (transaction) {
